@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,13 +15,10 @@ import {
 import { toast } from "@/hooks/use-toast";
 
 interface AIInsightsProps {
-  
   businessType: string;
-  
 }
 
 const AIInsights = ({ businessType }: AIInsightsProps) => {
-  
   const [insights, setInsights] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 

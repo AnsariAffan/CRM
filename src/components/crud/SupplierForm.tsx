@@ -11,56 +11,52 @@ import { Database } from '@/integration/supabase/types';
 
 type BusinessType = Database['public']['Enums']['business_type'];
 
-interface CustomerFormProps {
+interface SupplierFormProps {
   open: boolean;
   onClose: () => void;
   businessType: BusinessType;
-  customer?: any;
+  supplier?: any;
 }
 
-const CustomerForm = ({ open, onClose, businessType, customer }: CustomerFormProps) => {
+const SupplierForm = ({ open, onClose, businessType, supplier }: SupplierFormProps) => {
   const [formData, setFormData] = useState({
-    customer_code: '',
+    supplier_code: '',
     name: '',
+    contact_person: '',
     email: '',
     phone: '',
     address: '',
     city: '',
     state: '',
     postal_code: '',
-    date_of_birth: '',
-    gender: '',
-    emergency_contact: '',
-    emergency_phone: '',
-    status: 'active',
-    notes: ''
+    tax_number: '',
+    payment_terms: '',
+    status: 'active'
   });
 
-  const createMutation = useCreateMutation('customers', ['customers']);
-  const updateMutation = useUpdateMutation('customers', ['customers']);
+  const createMutation = useCreateMutation('suppliers', ['suppliers']);
+  const updateMutation = useUpdateMutation('suppliers', ['suppliers']);
 
   useEffect(() => {
-    if (customer) {
-      setFormData({ ...customer });
+    if (supplier) {
+      setFormData({ ...supplier });
     } else {
       setFormData({
-        customer_code: `CUST-${Date.now()}`,
+        supplier_code: `SUP-${Date.now()}`,
         name: '',
+        contact_person: '',
         email: '',
         phone: '',
         address: '',
         city: '',
         state: '',
         postal_code: '',
-        date_of_birth: '',
-        gender: '',
-        emergency_contact: '',
-        emergency_phone: '',
-        status: 'active',
-        notes: ''
+        tax_number: '',
+        payment_terms: '',
+        status: 'active'
       });
     }
-  }, [customer, open]);
+  }, [supplier, open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,38 +65,33 @@ const CustomerForm = ({ open, onClose, businessType, customer }: CustomerFormPro
       business_type: businessType
     };
 
-    if (customer) {
-      await updateMutation.mutateAsync({ id: customer.id, data: dataToSubmit });
+    if (supplier) {
+      await updateMutation.mutateAsync({ id: supplier.id, data: dataToSubmit });
     } else {
       await createMutation.mutateAsync(dataToSubmit);
     }
     onClose();
   };
 
-  const getTitle = () => {
-    const entityName = businessType === 'Hospital' ? 'Patient' : 'Customer';
-    return customer ? `Edit ${entityName}` : `Add New ${entityName}`;
-  };
-
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{getTitle()}</DialogTitle>
+          <DialogTitle>{supplier ? 'Edit Supplier' : 'Add New Supplier'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="customer_code">Code</Label>
+              <Label htmlFor="supplier_code">Supplier Code</Label>
               <Input
-                id="customer_code"
-                value={formData.customer_code}
-                onChange={(e) => setFormData({ ...formData, customer_code: e.target.value })}
+                id="supplier_code"
+                value={formData.supplier_code}
+                onChange={(e) => setFormData({ ...formData, supplier_code: e.target.value })}
                 required
               />
             </div>
             <div>
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name">Company Name</Label>
               <Input
                 id="name"
                 value={formData.name}
@@ -109,8 +100,16 @@ const CustomerForm = ({ open, onClose, businessType, customer }: CustomerFormPro
               />
             </div>
           </div>
-          
+
           <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="contact_person">Contact Person</Label>
+              <Input
+                id="contact_person"
+                value={formData.contact_person}
+                onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })}
+              />
+            </div>
             <div>
               <Label htmlFor="email">Email</Label>
               <Input
@@ -120,12 +119,23 @@ const CustomerForm = ({ open, onClose, businessType, customer }: CustomerFormPro
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               />
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="phone">Phone</Label>
               <Input
                 id="phone"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="tax_number">Tax Number</Label>
+              <Input
+                id="tax_number"
+                value={formData.tax_number}
+                onChange={(e) => setFormData({ ...formData, tax_number: e.target.value })}
               />
             </div>
           </div>
@@ -166,74 +176,35 @@ const CustomerForm = ({ open, onClose, businessType, customer }: CustomerFormPro
             </div>
           </div>
 
-          {businessType === 'Hospital' && (
-            <>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="date_of_birth">Date of Birth</Label>
-                  <Input
-                    id="date_of_birth"
-                    type="date"
-                    value={formData.date_of_birth}
-                    onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="gender">Gender</Label>
-                  <Select value={formData.gender} onValueChange={(value) => setFormData({ ...formData, gender: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select gender" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="male">Male</SelectItem>
-                      <SelectItem value="female">Female</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="emergency_contact">Emergency Contact</Label>
-                  <Input
-                    id="emergency_contact"
-                    value={formData.emergency_contact}
-                    onChange={(e) => setFormData({ ...formData, emergency_contact: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="emergency_phone">Emergency Phone</Label>
-                  <Input
-                    id="emergency_phone"
-                    value={formData.emergency_phone}
-                    onChange={(e) => setFormData({ ...formData, emergency_phone: e.target.value })}
-                  />
-                </div>
-              </div>
-            </>
-          )}
-
-          <div>
-            <Label htmlFor="status">Status</Label>
-            <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label htmlFor="notes">Notes</Label>
-            <Textarea
-              id="notes"
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="payment_terms">Payment Terms</Label>
+              <Select value={formData.payment_terms} onValueChange={(value) => setFormData({ ...formData, payment_terms: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select payment terms" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="net_30">Net 30</SelectItem>
+                  <SelectItem value="net_60">Net 60</SelectItem>
+                  <SelectItem value="net_90">Net 90</SelectItem>
+                  <SelectItem value="cod">Cash on Delivery</SelectItem>
+                  <SelectItem value="prepaid">Prepaid</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="status">Status</Label>
+              <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="suspended">Suspended</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="flex justify-end space-x-2">
@@ -241,7 +212,7 @@ const CustomerForm = ({ open, onClose, businessType, customer }: CustomerFormPro
               Cancel
             </Button>
             <Button type="submit">
-              {customer ? 'Update' : 'Create'}
+              {supplier ? 'Update' : 'Create'}
             </Button>
           </div>
         </form>
@@ -250,4 +221,4 @@ const CustomerForm = ({ open, onClose, businessType, customer }: CustomerFormPro
   );
 };
 
-export default CustomerForm;
+export default SupplierForm;

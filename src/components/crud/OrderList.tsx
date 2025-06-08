@@ -5,71 +5,69 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Plus, Edit, Trash2, Search, Download, Upload } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { useCustomers, useDeleteMutation, useCreateMutation } from '@/hooks/useSupabaseQuery';
-import CustomerForm from './CustomerForm';
+import { useOrders, useDeleteMutation, useCreateMutation } from '@/hooks/useSupabaseQuery';
+import OrderForm from './OrderForm';
 import { toast } from '@/hooks/use-toast';
 import { Database } from '@/integration/supabase/types';
 
+
 type BusinessType = Database['public']['Enums']['business_type'];
 
-interface CustomerListProps {
+interface OrderListProps {
   businessType: BusinessType;
 }
 
-const CustomerList = ({ businessType }: CustomerListProps) => {
+const OrderList = ({ businessType }: OrderListProps) => {
   const [showForm, setShowForm] = useState(false);
-  const [editingCustomer, setEditingCustomer] = useState<any>(null);
+  const [editingOrder, setEditingOrder] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   
-  const { data: customers, isLoading } = useCustomers(businessType);
-  const deleteMutation = useDeleteMutation('customers', ['customers']);
-  const createMutation = useCreateMutation('customers', ['customers']);
+  const { data: orders, isLoading } = useOrders(businessType);
+  const deleteMutation = useDeleteMutation('orders', ['orders']);
+  const createMutation = useCreateMutation('orders', ['orders']);
 
-  const filteredCustomers = customers?.filter(customer =>
-    customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.customer_code.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredOrders = orders?.filter(order =>
+    order.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    order.customers?.name?.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
-  const handleEdit = (customer: any) => {
-    setEditingCustomer(customer);
+  const handleEdit = (order: any) => {
+    setEditingOrder(order);
     setShowForm(true);
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this customer?')) {
+    if (confirm('Are you sure you want to delete this order?')) {
       await deleteMutation.mutateAsync(id);
     }
   };
 
   const handleCloseForm = () => {
     setShowForm(false);
-    setEditingCustomer(null);
+    setEditingOrder(null);
   };
 
   const handleExport = () => {
-    if (!customers || customers.length === 0) {
+    if (!orders || orders.length === 0) {
       toast({
         title: "No data to export",
-        description: "There are no customers to export",
+        description: "There are no orders to export",
         variant: "destructive",
       });
       return;
     }
 
-    const headers = ['Customer Code', 'Name', 'Email', 'Phone', 'City', 'Status', 'Address', 'Date of Birth', 'Gender'];
+    const headers = ['Order Number', 'Customer', 'Type', 'Date', 'Total Amount', 'Status', 'Payment Status'];
     const csvContent = [
       headers.join(','),
-      ...customers.map(customer => [
-        customer.customer_code,
-        `"${customer.name}"`,
-        customer.email || '',
-        customer.phone || '',
-        customer.city || '',
-        customer.status || '',
-        `"${customer.address || ''}"`,
-        customer.date_of_birth || '',
-        customer.gender || ''
+      ...orders.map(order => [
+        order.order_number,
+        `"${order.customers?.name || 'N/A'}"`,
+        order.order_type,
+        order.order_date || '',
+        order.total_amount || 0,
+        order.status || '',
+        order.payment_status || ''
       ].join(','))
     ].join('\n');
 
@@ -77,7 +75,7 @@ const CustomerList = ({ businessType }: CustomerListProps) => {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `customers_${businessType}_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `orders_${businessType}_${new Date().toISOString().split('T')[0]}.csv`;
     document.body.appendChild(a);
     a.click();
     window.URL.revokeObjectURL(url);
@@ -85,7 +83,7 @@ const CustomerList = ({ businessType }: CustomerListProps) => {
 
     toast({
       title: "Export successful",
-      description: "Customers exported to CSV successfully",
+      description: "Orders exported to CSV successfully",
     });
   };
 
@@ -98,54 +96,64 @@ const CustomerList = ({ businessType }: CustomerListProps) => {
       try {
         const text = e.target?.result as string;
         const lines = text.split('\n');
-        const headers = lines[0].split(',');
         
         for (let i = 1; i < lines.length; i++) {
           const line = lines[i].trim();
           if (!line) continue;
           
           const values = line.split(',');
-          const customer = {
-            customer_code: values[0] || `CUST${Date.now()}${i}`,
-            name: values[1]?.replace(/"/g, '') || `Customer ${i}`,
-            email: values[2] || '',
-            phone: values[3] || '',
-            city: values[4] || '',
-            status: values[5] || 'active',
-            address: values[6]?.replace(/"/g, '') || '',
-            date_of_birth: values[7] || '',
-            gender: values[8] || '',
+          const order = {
+            order_number: values[0] || `ORD${Date.now()}${i}`,
+            order_type: values[2] || 'sale',
+            order_date: values[3] || new Date().toISOString().split('T')[0],
+            total_amount: parseFloat(values[4]) || 0,
+            status: values[5] || 'pending',
+            payment_status: values[6] || 'pending',
             business_type: businessType
           };
 
-          await createMutation.mutateAsync(customer);
+          await createMutation.mutateAsync(order);
         }
 
         toast({
           title: "Import successful",
-          description: `${lines.length - 1} customers imported successfully`,
+          description: `${lines.length - 1} orders imported successfully`,
         });
       } catch (error) {
         toast({
           title: "Import failed",
-          description: "Failed to import customers. Please check the file format.",
+          description: "Failed to import orders. Please check the file format.",
           variant: "destructive",
         });
       }
     };
     reader.readAsText(file);
     
-    // Reset the input
     event.target.value = '';
   };
 
-  if (isLoading) return <div>Loading customers...</div>;
+  const getBusinessSpecificTitle = () => {
+    switch (businessType) {
+      case 'Medical Store':
+        return 'Prescriptions & Sales';
+      case 'Hospital':
+        return 'Medical Orders';
+      case 'Warehouse':
+        return 'Inventory Orders';
+      case 'Retail Store':
+        return 'Sales Orders';
+      default:
+        return 'Orders';
+    }
+  };
+
+  if (isLoading) return <div>Loading orders...</div>;
 
   return (
     <Card>
       <CardHeader>
         <div className="flex justify-between items-center">
-          <CardTitle>Customers</CardTitle>
+          <CardTitle>{getBusinessSpecificTitle()}</CardTitle>
           <div className="flex gap-2">
             <Button variant="outline" onClick={handleExport}>
               <Download className="h-4 w-4 mr-2" />
@@ -157,10 +165,10 @@ const CustomerList = ({ businessType }: CustomerListProps) => {
                 accept=".csv"
                 onChange={handleImport}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                id="import-customers"
+                id="import-orders"
               />
               <Button variant="outline" asChild>
-                <label htmlFor="import-customers" className="cursor-pointer flex items-center">
+                <label htmlFor="import-orders" className="cursor-pointer flex items-center">
                   <Upload className="h-4 w-4 mr-2" />
                   Import
                 </label>
@@ -168,14 +176,14 @@ const CustomerList = ({ businessType }: CustomerListProps) => {
             </div>
             <Button onClick={() => setShowForm(true)}>
               <Plus className="h-4 w-4 mr-2" />
-              Add Customer
+              Add Order
             </Button>
           </div>
         </div>
         <div className="flex items-center space-x-2">
           <Search className="h-4 w-4 text-gray-400" />
           <Input
-            placeholder="Search customers..."
+            placeholder="Search orders..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-sm"
@@ -186,26 +194,32 @@ const CustomerList = ({ businessType }: CustomerListProps) => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Code</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Phone</TableHead>
-              <TableHead>City</TableHead>
+              <TableHead>Order #</TableHead>
+              <TableHead>Customer</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead>Total</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Payment</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredCustomers.map((customer) => (
-              <TableRow key={customer.id}>
-                <TableCell className="font-medium">{customer.customer_code}</TableCell>
-                <TableCell>{customer.name}</TableCell>
-                <TableCell>{customer.email}</TableCell>
-                <TableCell>{customer.phone}</TableCell>
-                <TableCell>{customer.city}</TableCell>
+            {filteredOrders.map((order) => (
+              <TableRow key={order.id}>
+                <TableCell className="font-medium">{order.order_number}</TableCell>
+                <TableCell>{order.customers?.name || 'N/A'}</TableCell>
+                <TableCell>{order.order_type}</TableCell>
+                <TableCell>{order.order_date}</TableCell>
+                <TableCell>${order.total_amount}</TableCell>
                 <TableCell>
-                  <Badge variant={customer.status === 'active' ? 'default' : 'secondary'}>
-                    {customer.status}
+                  <Badge variant={order.status === 'completed' ? 'default' : 'secondary'}>
+                    {order.status}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={order.payment_status === 'paid' ? 'default' : 'destructive'}>
+                    {order.payment_status}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
@@ -213,14 +227,14 @@ const CustomerList = ({ businessType }: CustomerListProps) => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleEdit(customer)}
+                      onClick={() => handleEdit(order)}
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleDelete(customer.id)}
+                      onClick={() => handleDelete(order.id)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -231,21 +245,21 @@ const CustomerList = ({ businessType }: CustomerListProps) => {
           </TableBody>
         </Table>
         
-        {filteredCustomers.length === 0 && (
+        {filteredOrders.length === 0 && (
           <div className="text-center py-8 text-gray-500">
-            No customers found. Add your first customer to get started.
+            No orders found. Create your first order to get started.
           </div>
         )}
       </CardContent>
 
-      <CustomerForm
+      <OrderForm
         open={showForm}
         onClose={handleCloseForm}
         businessType={businessType}
-        customer={editingCustomer}
+        order={editingOrder}
       />
     </Card>
   );
 };
 
-export default CustomerList;
+export default OrderList;

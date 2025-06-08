@@ -11,15 +11,20 @@ import {
   Car,
   Briefcase
 } from "lucide-react";
+import { Database } from "@/integration/supabase/types";
+
+type BusinessType = Database['public']['Enums']['business_type'];
 
 interface BusinessTypeSelectorProps {
-  onSelect: (businessType: string) => void;
+  onSelect: (businessType: BusinessType) => void;
+  currentBusinessType?: BusinessType | null;
+  user?: any;
 }
 
-const BusinessTypeSelector = ({ onSelect }: BusinessTypeSelectorProps) => {
+const BusinessTypeSelector = ({ onSelect, currentBusinessType, user }: BusinessTypeSelectorProps) => {
   const businessTypes = [
     {
-      id: "Hospital",
+      id: "Hospital" as BusinessType,
       name: "Hospital & Healthcare",
       description: "Patient management, appointments, medical records",
       icon: Stethoscope,
@@ -27,7 +32,7 @@ const BusinessTypeSelector = ({ onSelect }: BusinessTypeSelectorProps) => {
       features: ["Patient Records", "Appointments", "Medical Supplies", "Staff Management"]
     },
     {
-      id: "Medical Store",
+      id: "Medical Store" as BusinessType,
       name: "Medical Store & Pharmacy",
       description: "Medicine inventory, prescriptions, customer health records",
       icon: Pill,
@@ -35,7 +40,7 @@ const BusinessTypeSelector = ({ onSelect }: BusinessTypeSelectorProps) => {
       features: ["Medicine Inventory", "Prescription Tracking", "Customer Health", "Supplier Management"]
     },
     {
-      id: "Warehouse",
+      id: "Warehouse" as BusinessType,
       name: "Warehouse & Storage",
       description: "Inventory management, location tracking, order fulfillment",
       icon: Warehouse,
@@ -43,7 +48,7 @@ const BusinessTypeSelector = ({ onSelect }: BusinessTypeSelectorProps) => {
       features: ["Inventory Control", "Location Mapping", "Order Processing", "Asset Tracking"]
     },
     {
-      id: "Retail Store",
+      id: "Retail Store" as BusinessType,
       name: "Retail & E-commerce",
       description: "Product catalog, sales tracking, customer management",
       icon: ShoppingBag,
@@ -51,7 +56,7 @@ const BusinessTypeSelector = ({ onSelect }: BusinessTypeSelectorProps) => {
       features: ["Product Catalog", "Sales Analytics", "Customer Loyalty", "Multi-channel Sales"]
     },
     {
-      id: "Automotive",
+      id: "Automotive" as BusinessType,
       name: "Automotive Business",
       description: "Vehicle inventory, service records, customer maintenance",
       icon: Car,
@@ -59,7 +64,7 @@ const BusinessTypeSelector = ({ onSelect }: BusinessTypeSelectorProps) => {
       features: ["Vehicle Inventory", "Service History", "Parts Management", "Customer Service"]
     },
     {
-      id: "General Business",
+      id: "General Business" as BusinessType,
       name: "General Business",
       description: "Customizable CRM for any business type",
       icon: Briefcase,
@@ -77,13 +82,20 @@ const BusinessTypeSelector = ({ onSelect }: BusinessTypeSelectorProps) => {
         <p className="text-gray-600">
           Select the option that best describes your business to get started with customized features
         </p>
+        {currentBusinessType && (
+          <p className="text-sm text-blue-600 mt-2">
+            Current: {businessTypes.find(b => b.id === currentBusinessType)?.name}
+          </p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {businessTypes.map((business) => (
           <Card 
             key={business.id} 
-            className={`cursor-pointer transition-all duration-200 ${business.color} hover:shadow-lg`}
+            className={`cursor-pointer transition-all duration-200 ${business.color} hover:shadow-lg ${
+              currentBusinessType === business.id ? 'ring-2 ring-blue-500' : ''
+            }`}
             onClick={() => onSelect(business.id)}
           >
             <CardHeader className="text-center pb-2">
@@ -103,7 +115,7 @@ const BusinessTypeSelector = ({ onSelect }: BusinessTypeSelectorProps) => {
                 ))}
               </div>
               <Button className="w-full" variant="outline">
-                Select {business.name}
+                {currentBusinessType === business.id ? 'Selected' : `Select ${business.name}`}
               </Button>
             </CardContent>
           </Card>

@@ -5,71 +5,71 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Plus, Edit, Trash2, Search, Download, Upload } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { useCustomers, useDeleteMutation, useCreateMutation } from '@/hooks/useSupabaseQuery';
-import CustomerForm from './CustomerForm';
+import { useSuppliers, useDeleteMutation, useCreateMutation } from '@/hooks/useSupabaseQuery';
+import SupplierForm from './SupplierForm';
 import { toast } from '@/hooks/use-toast';
 import { Database } from '@/integration/supabase/types';
 
+
 type BusinessType = Database['public']['Enums']['business_type'];
 
-interface CustomerListProps {
+interface SupplierListProps {
   businessType: BusinessType;
 }
 
-const CustomerList = ({ businessType }: CustomerListProps) => {
+const SupplierList = ({ businessType }: SupplierListProps) => {
   const [showForm, setShowForm] = useState(false);
-  const [editingCustomer, setEditingCustomer] = useState<any>(null);
+  const [editingSupplier, setEditingSupplier] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   
-  const { data: customers, isLoading } = useCustomers(businessType);
-  const deleteMutation = useDeleteMutation('customers', ['customers']);
-  const createMutation = useCreateMutation('customers', ['customers']);
+  const { data: suppliers, isLoading } = useSuppliers(businessType);
+  const deleteMutation = useDeleteMutation('suppliers', ['suppliers']);
+  const createMutation = useCreateMutation('suppliers', ['suppliers']);
 
-  const filteredCustomers = customers?.filter(customer =>
-    customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.customer_code.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredSuppliers = suppliers?.filter(supplier =>
+    supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    supplier.supplier_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    supplier.email?.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
-  const handleEdit = (customer: any) => {
-    setEditingCustomer(customer);
+  const handleEdit = (supplier: any) => {
+    setEditingSupplier(supplier);
     setShowForm(true);
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this customer?')) {
+    if (confirm('Are you sure you want to delete this supplier?')) {
       await deleteMutation.mutateAsync(id);
     }
   };
 
   const handleCloseForm = () => {
     setShowForm(false);
-    setEditingCustomer(null);
+    setEditingSupplier(null);
   };
 
   const handleExport = () => {
-    if (!customers || customers.length === 0) {
+    if (!suppliers || suppliers.length === 0) {
       toast({
         title: "No data to export",
-        description: "There are no customers to export",
+        description: "There are no suppliers to export",
         variant: "destructive",
       });
       return;
     }
 
-    const headers = ['Customer Code', 'Name', 'Email', 'Phone', 'City', 'Status', 'Address', 'Date of Birth', 'Gender'];
+    const headers = ['Supplier Code', 'Name', 'Contact Person', 'Email', 'Phone', 'City', 'Status', 'Address'];
     const csvContent = [
       headers.join(','),
-      ...customers.map(customer => [
-        customer.customer_code,
-        `"${customer.name}"`,
-        customer.email || '',
-        customer.phone || '',
-        customer.city || '',
-        customer.status || '',
-        `"${customer.address || ''}"`,
-        customer.date_of_birth || '',
-        customer.gender || ''
+      ...suppliers.map(supplier => [
+        supplier.supplier_code,
+        `"${supplier.name}"`,
+        supplier.contact_person || '',
+        supplier.email || '',
+        supplier.phone || '',
+        supplier.city || '',
+        supplier.status || '',
+        `"${supplier.address || ''}"`
       ].join(','))
     ].join('\n');
 
@@ -77,7 +77,7 @@ const CustomerList = ({ businessType }: CustomerListProps) => {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `customers_${businessType}_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `suppliers_${businessType}_${new Date().toISOString().split('T')[0]}.csv`;
     document.body.appendChild(a);
     a.click();
     window.URL.revokeObjectURL(url);
@@ -85,7 +85,7 @@ const CustomerList = ({ businessType }: CustomerListProps) => {
 
     toast({
       title: "Export successful",
-      description: "Customers exported to CSV successfully",
+      description: "Suppliers exported to CSV successfully",
     });
   };
 
@@ -98,54 +98,51 @@ const CustomerList = ({ businessType }: CustomerListProps) => {
       try {
         const text = e.target?.result as string;
         const lines = text.split('\n');
-        const headers = lines[0].split(',');
         
         for (let i = 1; i < lines.length; i++) {
           const line = lines[i].trim();
           if (!line) continue;
           
           const values = line.split(',');
-          const customer = {
-            customer_code: values[0] || `CUST${Date.now()}${i}`,
-            name: values[1]?.replace(/"/g, '') || `Customer ${i}`,
-            email: values[2] || '',
-            phone: values[3] || '',
-            city: values[4] || '',
-            status: values[5] || 'active',
-            address: values[6]?.replace(/"/g, '') || '',
-            date_of_birth: values[7] || '',
-            gender: values[8] || '',
+          const supplier = {
+            supplier_code: values[0] || `SUP${Date.now()}${i}`,
+            name: values[1]?.replace(/"/g, '') || `Supplier ${i}`,
+            contact_person: values[2] || '',
+            email: values[3] || '',
+            phone: values[4] || '',
+            city: values[5] || '',
+            status: values[6] || 'active',
+            address: values[7]?.replace(/"/g, '') || '',
             business_type: businessType
           };
 
-          await createMutation.mutateAsync(customer);
+          await createMutation.mutateAsync(supplier);
         }
 
         toast({
           title: "Import successful",
-          description: `${lines.length - 1} customers imported successfully`,
+          description: `${lines.length - 1} suppliers imported successfully`,
         });
       } catch (error) {
         toast({
           title: "Import failed",
-          description: "Failed to import customers. Please check the file format.",
+          description: "Failed to import suppliers. Please check the file format.",
           variant: "destructive",
         });
       }
     };
     reader.readAsText(file);
     
-    // Reset the input
     event.target.value = '';
   };
 
-  if (isLoading) return <div>Loading customers...</div>;
+  if (isLoading) return <div>Loading suppliers...</div>;
 
   return (
     <Card>
       <CardHeader>
         <div className="flex justify-between items-center">
-          <CardTitle>Customers</CardTitle>
+          <CardTitle>Suppliers</CardTitle>
           <div className="flex gap-2">
             <Button variant="outline" onClick={handleExport}>
               <Download className="h-4 w-4 mr-2" />
@@ -157,10 +154,10 @@ const CustomerList = ({ businessType }: CustomerListProps) => {
                 accept=".csv"
                 onChange={handleImport}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                id="import-customers"
+                id="import-suppliers"
               />
               <Button variant="outline" asChild>
-                <label htmlFor="import-customers" className="cursor-pointer flex items-center">
+                <label htmlFor="import-suppliers" className="cursor-pointer flex items-center">
                   <Upload className="h-4 w-4 mr-2" />
                   Import
                 </label>
@@ -168,14 +165,14 @@ const CustomerList = ({ businessType }: CustomerListProps) => {
             </div>
             <Button onClick={() => setShowForm(true)}>
               <Plus className="h-4 w-4 mr-2" />
-              Add Customer
+              Add Supplier
             </Button>
           </div>
         </div>
         <div className="flex items-center space-x-2">
           <Search className="h-4 w-4 text-gray-400" />
           <Input
-            placeholder="Search customers..."
+            placeholder="Search suppliers..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-sm"
@@ -188,6 +185,7 @@ const CustomerList = ({ businessType }: CustomerListProps) => {
             <TableRow>
               <TableHead>Code</TableHead>
               <TableHead>Name</TableHead>
+              <TableHead>Contact Person</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Phone</TableHead>
               <TableHead>City</TableHead>
@@ -196,16 +194,17 @@ const CustomerList = ({ businessType }: CustomerListProps) => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredCustomers.map((customer) => (
-              <TableRow key={customer.id}>
-                <TableCell className="font-medium">{customer.customer_code}</TableCell>
-                <TableCell>{customer.name}</TableCell>
-                <TableCell>{customer.email}</TableCell>
-                <TableCell>{customer.phone}</TableCell>
-                <TableCell>{customer.city}</TableCell>
+            {filteredSuppliers.map((supplier) => (
+              <TableRow key={supplier.id}>
+                <TableCell className="font-medium">{supplier.supplier_code}</TableCell>
+                <TableCell>{supplier.name}</TableCell>
+                <TableCell>{supplier.contact_person}</TableCell>
+                <TableCell>{supplier.email}</TableCell>
+                <TableCell>{supplier.phone}</TableCell>
+                <TableCell>{supplier.city}</TableCell>
                 <TableCell>
-                  <Badge variant={customer.status === 'active' ? 'default' : 'secondary'}>
-                    {customer.status}
+                  <Badge variant={supplier.status === 'active' ? 'default' : 'secondary'}>
+                    {supplier.status}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
@@ -213,14 +212,14 @@ const CustomerList = ({ businessType }: CustomerListProps) => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleEdit(customer)}
+                      onClick={() => handleEdit(supplier)}
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleDelete(customer.id)}
+                      onClick={() => handleDelete(supplier.id)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -231,21 +230,21 @@ const CustomerList = ({ businessType }: CustomerListProps) => {
           </TableBody>
         </Table>
         
-        {filteredCustomers.length === 0 && (
+        {filteredSuppliers.length === 0 && (
           <div className="text-center py-8 text-gray-500">
-            No customers found. Add your first customer to get started.
+            No suppliers found. Add your first supplier to get started.
           </div>
         )}
       </CardContent>
 
-      <CustomerForm
+      <SupplierForm
         open={showForm}
         onClose={handleCloseForm}
         businessType={businessType}
-        customer={editingCustomer}
+        supplier={editingSupplier}
       />
     </Card>
   );
 };
 
-export default CustomerList;
+export default SupplierList;

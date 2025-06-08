@@ -1,14 +1,13 @@
 
 import { useState } from 'react';
-import { Button } from '../ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import { Building2 } from 'lucide-react';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue  } from '../ui/select';
-
 
 const AuthForm = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -25,27 +24,56 @@ const AuthForm = () => {
 
     try {
       if (isLogin) {
+        console.log('Attempting login...');
         const { error } = await signIn(email, password);
-        if (error) throw error;
+        if (error) {
+          console.error('Login error:', error);
+          throw error;
+        }
         toast({
           title: "Welcome back!",
           description: "You have successfully signed in.",
         });
       } else {
-        const { error } = await signUp(email, password, {
+        console.log('Attempting signup...');
+        const userData = {
           full_name: fullName,
           business_type: businessType
-        });
-        if (error) throw error;
-        toast({
-          title: "Account created!",
-          description: "Please check your email to verify your account.",
-        });
+        };
+        
+        const { data, error } = await signUp(email, password, userData);
+        
+        if (error) {
+          console.error('Signup error:', error);
+          throw error;
+        }
+        
+        if (data?.user && !data?.session) {
+          toast({
+            title: "Account created!",
+            description: "Please check your email to verify your account.",
+          });
+        } else {
+          toast({
+            title: "Account created!",
+            description: "You have been automatically signed in.",
+          });
+        }
       }
     } catch (error: any) {
+      console.error('Auth error:', error);
+      
+      let errorMessage = "An error occurred";
+      
+      if (error?.message) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+      
       toast({
         title: "Error",
-        description: error.message || "An error occurred",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -84,7 +112,7 @@ const AuthForm = () => {
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  required
+                  required={!isLogin}
                 />
               </div>
             )}
@@ -114,7 +142,7 @@ const AuthForm = () => {
             {!isLogin && (
               <div className="space-y-2">
                 <Label htmlFor="businessType">Business Type</Label>
-                <Select value={businessType} onValueChange={setBusinessType} required>
+                <Select value={businessType} onValueChange={setBusinessType} required={!isLogin}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select your business type" />
                   </SelectTrigger>
@@ -138,6 +166,7 @@ const AuthForm = () => {
                 type="button"
                 variant="link"
                 onClick={() => setIsLogin(!isLogin)}
+                disabled={loading}
               >
                 {isLogin 
                   ? "Don't have an account? Sign up" 

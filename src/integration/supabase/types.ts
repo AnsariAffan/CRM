@@ -220,6 +220,102 @@ export type Database = {
           },
         ]
       }
+      login_history: {
+        Row: {
+          created_at: string
+          id: string
+          ip_address: string | null
+          location: string | null
+          login_time: string
+          success: boolean
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          location?: string | null
+          login_time?: string
+          success?: boolean
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          location?: string | null
+          login_time?: string
+          success?: boolean
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      medical_records: {
+        Row: {
+          allergies: string | null
+          blood_type: string | null
+          business_type: Database["public"]["Enums"]["business_type"]
+          created_at: string
+          current_medications: string | null
+          date_of_birth: string | null
+          diagnosis: string | null
+          gender: string | null
+          id: string
+          medical_history: string | null
+          medications: Json | null
+          notes: string | null
+          patient_id: string | null
+          patient_name: string
+          status: string | null
+          updated_at: string
+          user_id: string
+          vital_signs: Json | null
+        }
+        Insert: {
+          allergies?: string | null
+          blood_type?: string | null
+          business_type: Database["public"]["Enums"]["business_type"]
+          created_at?: string
+          current_medications?: string | null
+          date_of_birth?: string | null
+          diagnosis?: string | null
+          gender?: string | null
+          id?: string
+          medical_history?: string | null
+          medications?: Json | null
+          notes?: string | null
+          patient_id?: string | null
+          patient_name: string
+          status?: string | null
+          updated_at?: string
+          user_id: string
+          vital_signs?: Json | null
+        }
+        Update: {
+          allergies?: string | null
+          blood_type?: string | null
+          business_type?: Database["public"]["Enums"]["business_type"]
+          created_at?: string
+          current_medications?: string | null
+          date_of_birth?: string | null
+          diagnosis?: string | null
+          gender?: string | null
+          id?: string
+          medical_history?: string | null
+          medications?: Json | null
+          notes?: string | null
+          patient_id?: string | null
+          patient_name?: string
+          status?: string | null
+          updated_at?: string
+          user_id?: string
+          vital_signs?: Json | null
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           created_at: string | null
@@ -470,7 +566,7 @@ export type Database = {
           created_at?: string | null
           email: string
           full_name?: string | null
-          id: string
+          id?: string
           role?: Database["public"]["Enums"]["user_role"] | null
           updated_at?: string | null
         }
@@ -542,6 +638,42 @@ export type Database = {
           supplier_code?: string
           tax_number?: string | null
           updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      system_logs: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          id: string
+          ip_address: string | null
+          resource: string
+          timestamp: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          resource: string
+          timestamp?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          resource?: string
+          timestamp?: string
+          user_agent?: string | null
           user_id?: string
         }
         Relationships: []

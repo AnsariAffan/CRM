@@ -1,138 +1,225 @@
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/useAuth';
 import { 
-  Menu, 
+  LayoutDashboard, 
   Users, 
   Package, 
-  TrendingUp, 
-  Settings, 
-  Brain, 
-  FileText,
-  Phone,
+  ShoppingCart, 
   Calendar,
-  MapPin
-} from "lucide-react";
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+  Settings,
+  LogOut,
+  Building2,
+  BarChart,
+  FileText,
+  Stethoscope,
+  Truck,
+  UserCheck,
+  Menu,
+  X
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Database } from '@/integration/supabase/types';
+
+type BusinessType = Database['public']['Enums']['business_type'];
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
-  businessType: string;
+  businessType: BusinessType;
+  onSwitchBusinessType: () => void;
 }
 
-const DashboardLayout = ({ children, businessType }: DashboardLayoutProps) => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+const DashboardLayout = ({ children, businessType, onSwitchBusinessType }: DashboardLayoutProps) => {
+  const { user, signOut } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const currentView = searchParams.get('view') || 'dashboard';
 
-  const getBusinessSpecificMenuItems = (type: string) => {
-    const baseItems = [
-      { icon: TrendingUp, label: "Dashboard", path: "/" },
-      { icon: Users, label: "Customers", path: "/customers" },
-      { icon: Brain, label: "AI Insights", path: "/ai-insights" },
-      { icon: Settings, label: "Settings", path: "/settings" },
-    ];
-
-    switch (type) {
-      case "Hospital":
-        return [
-          ...baseItems.slice(0, 1),
-          { icon: Users, label: "Patients", path: "/patients" },
-          { icon: Calendar, label: "Appointments", path: "/appointments" },
-          { icon: FileText, label: "Medical Records", path: "/records" },
-          { icon: Package, label: "Medical Supplies", path: "/supplies" },
-          ...baseItems.slice(2),
-        ];
-      case "Medical Store":
-        return [
-          ...baseItems.slice(0, 2),
-          { icon: Package, label: "Medicines", path: "/medicines" },
-          { icon: FileText, label: "Prescriptions", path: "/prescriptions" },
-          ...baseItems.slice(2),
-        ];
-      case "Warehouse":
-        return [
-          ...baseItems.slice(0, 2),
-          { icon: Package, label: "Inventory", path: "/inventory" },
-          { icon: MapPin, label: "Locations", path: "/locations" },
-          { icon: FileText, label: "Orders", path: "/orders" },
-          ...baseItems.slice(2),
-        ];
-      case "Retail Store":
-        return [
-          ...baseItems.slice(0, 2),
-          { icon: Package, label: "Products", path: "/products" },
-          { icon: FileText, label: "Sales", path: "/sales" },
-          { icon: TrendingUp, label: "Analytics", path: "/analytics" },
-          ...baseItems.slice(2),
-        ];
-      default:
-        return baseItems;
+  const handleLogout = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Logout error:', error);
     }
   };
 
-  const menuItems = getBusinessSpecificMenuItems(businessType);
+  const handleNavigation = (view: string) => {
+    setSearchParams({ view });
+    setSidebarOpen(false);
+  };
 
-  const SidebarContent = () => (
-    <div className="flex flex-col h-full">
-      <div className="p-6 border-b">
-        <h2 className="text-lg font-semibold text-gray-900">
-          {businessType} CRM
-        </h2>
-        <p className="text-sm text-gray-500">AI-Powered Management</p>
-      </div>
-      
-      <nav className="flex-1 p-4 space-y-2">
-        {menuItems.map((item) => (
-          <Button
-            key={item.path}
-            variant="ghost"
-            className="w-full justify-start text-left"
-            onClick={() => setIsSidebarOpen(false)}
-          >
-            <item.icon className="h-4 w-4 mr-3" />
-            {item.label}
-          </Button>
-        ))}
-      </nav>
-      
-      <div className="p-4 border-t">
-        <p className="text-xs text-gray-500">
-          Powered by AI • Version 1.0
-        </p>
-      </div>
-    </div>
-  );
+  const getNavigationItems = () => {
+    const baseItems = [
+      { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { id: 'reports', label: 'Reports', icon: BarChart },
+      { id: 'settings', label: 'Settings', icon: Settings }
+    ];
+
+    const businessSpecificItems = {
+      "Hospital": [
+        { id: 'patients', label: 'Patients', icon: Users },
+        { id: 'appointments', label: 'Appointments', icon: Calendar },
+        { id: 'inventory', label: 'Medical Supplies', icon: Package },
+        { id: 'records', label: 'Medical Records', icon: FileText },
+        { id: 'suppliers', label: 'Suppliers', icon: Truck }
+      ],
+      "Medical Store": [
+        { id: 'customers', label: 'Customers', icon: Users },
+        { id: 'medicines', label: 'Medicines', icon: Package },
+        { id: 'prescriptions', label: 'Prescriptions', icon: FileText },
+        { id: 'suppliers', label: 'Suppliers', icon: Truck }
+      ],
+      "Warehouse": [
+        { id: 'inventory', label: 'Inventory', icon: Package },
+        { id: 'orders', label: 'Orders', icon: ShoppingCart },
+        { id: 'locations', label: 'Locations', icon: Building2 },
+        { id: 'suppliers', label: 'Suppliers', icon: Truck }
+      ],
+      "Retail Store": [
+        { id: 'customers', label: 'Customers', icon: Users },
+        { id: 'products', label: 'Products', icon: Package },
+        { id: 'sales', label: 'Sales', icon: ShoppingCart },
+        { id: 'suppliers', label: 'Suppliers', icon: Truck }
+      ],
+      "Automotive": [
+        { id: 'customers', label: 'Customers', icon: Users },
+        { id: 'inventory', label: 'Vehicle Inventory', icon: Package },
+        { id: 'orders', label: 'Service Orders', icon: ShoppingCart },
+        { id: 'appointments', label: 'Service Appointments', icon: Calendar }
+      ],
+      "General Business": [
+        { id: 'customers', label: 'Customers', icon: Users },
+        { id: 'products', label: 'Products', icon: Package },
+        { id: 'orders', label: 'Orders', icon: ShoppingCart },
+        { id: 'suppliers', label: 'Suppliers', icon: Truck }
+      ]
+    };
+
+    return [
+      baseItems[0], // Dashboard
+      ...businessSpecificItems[businessType] || businessSpecificItems["General Business"],
+      ...baseItems.slice(1) // Reports and Settings
+    ];
+  };
+
+  const navigationItems = getNavigationItems();
+
+  const getBusinessTypeIcon = () => {
+    switch (businessType) {
+      case "Hospital": return Stethoscope;
+      case "Medical Store": return Package;
+      case "Warehouse": return Building2;
+      case "Retail Store": return ShoppingCart;
+      case "Automotive": return Truck;
+      default: return Building2;
+    }
+  };
+
+  const BusinessIcon = getBusinessTypeIcon();
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Mobile Header */}
-      <header className="lg:hidden bg-white shadow-sm border-b p-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold">{businessType} CRM</h1>
-          <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
-            <SheetTrigger asChild>
-              <Button variant="outline" size="icon">
-                <Menu className="h-4 w-4" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="p-0 w-64">
-              <SidebarContent />
-            </SheetContent>
-          </Sheet>
+    <div className="flex h-screen bg-gray-50">
+      {/* Mobile sidebar overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside className={cn(
+        "fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:inset-0",
+        sidebarOpen ? "translate-x-0" : "-translate-x-full"
+      )}>
+        <div className="flex flex-col h-full">
+          {/* Header */}
+          <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
+            <div className="flex items-center space-x-3">
+              <BusinessIcon className="h-8 w-8 text-blue-600" />
+              <div>
+                <h1 className="text-lg font-semibold text-gray-900">
+                  {businessType.includes('Store') ? 'Store' : businessType}
+                </h1>
+                <p className="text-xs text-gray-500">{user?.email}</p>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="lg:hidden"
+              onClick={() => setSidebarOpen(false)}
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+
+          {/* Navigation */}
+          <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+            {navigationItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => handleNavigation(item.id)}
+                className={cn(
+                  "w-full flex items-center space-x-3 px-3 py-2 text-left text-sm font-medium rounded-lg transition-colors",
+                  currentView === item.id
+                    ? "bg-blue-50 text-blue-700"
+                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                )}
+              >
+                <item.icon className="h-5 w-5" />
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </nav>
+
+          {/* Footer */}
+          <div className="p-4 border-t border-gray-200 space-y-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full justify-start"
+              onClick={onSwitchBusinessType}
+            >
+              <Building2 className="h-4 w-4 mr-2" />
+              Switch Business Type
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Logout
+            </Button>
+          </div>
         </div>
-      </header>
+      </aside>
 
-      <div className="flex">
-        {/* Desktop Sidebar */}
-        <aside className="hidden lg:block w-64 bg-white shadow-sm border-r min-h-screen">
-          <SidebarContent />
-        </aside>
+      {/* Main content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Top bar */}
+        <header className="bg-white shadow-sm border-b border-gray-200 lg:hidden">
+          <div className="flex items-center justify-between h-16 px-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSidebarOpen(true)}
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+            <h1 className="text-lg font-semibold text-gray-900">
+              {navigationItems.find(item => item.id === currentView)?.label || 'Dashboard'}
+            </h1>
+            <div className="w-10" /> {/* Spacer for centering */}
+          </div>
+        </header>
 
-        {/* Main Content */}
-        <main className="flex-1 p-6">
+        {/* Page content */}
+        <main className="flex-1 overflow-auto p-6">
           {children}
         </main>
       </div>
